@@ -1,5 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Text_IO.Text_Streams; use Ada.Text_IO.Text_Streams;
+with Ada.Unchecked_Conversion;
+with GNAT.SHA256; use GNAT.SHA256;
 
 package body Block is
 
@@ -45,7 +47,7 @@ package body Block is
       return Result;
    end Uint_256_Hex;
 
-   procedure Print_Block (B : Block) is
+   procedure Print_Block (B : Block_Type) is
    begin
       Put_Line ("Version = " & Unsigned_32'Image (B.Version));
       Put_Line ("Prev_Block = " & Uint_256_Hex (B.Prev_Block));
@@ -55,10 +57,10 @@ package body Block is
       Put_Line ("Nonce = " & Unsigned_32'Image (B.Nonce));
    end Print_Block;
 
-   procedure Read_Blocks (File : String) is
+   function Read_Block (File : String) return Block_Type is
       Handle : File_Type;
       Tmp : Interfaces.Unsigned_32;
-      B : Block;
+      B : Block_Type;
    begin
       Open (Handle, In_File, File);
       --  read block header marker and check it's really a block header marker
@@ -73,7 +75,23 @@ package body Block is
       Unsigned_32'Read (Stream (Handle), B.Timestamp);
       Unsigned_32'Read (Stream (Handle), B.Size);
       Unsigned_32'Read (Stream (Handle), B.Nonce);
-      Print_Block (B);
-   end Read_Blocks;
+      return B;
+   end Read_Block;
+
+   function Block_Hash (B : Block_Type) return Uint_256 is
+      S : String (1 .. Block_Type'Size / 8);
+      for S'Address use B'Address;
+      D : Binary_Message_Digest := Digest (S);
+      T : String (1 .. 32);
+      for T'Address use D'Address;
+      D2 : Binary_Message_Digest := Digest (T);
+
+      function To_Uint_256 is new Ada.Unchecked_Conversion
+        (Source => Binary_Message_Digest,
+         Target => Uint_256);
+
+   begin
+      return To_Uint_256 (D2);
+   end Block_Hash;
 
 end Block;
