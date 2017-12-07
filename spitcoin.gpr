@@ -7,7 +7,7 @@ project Spitcoin is
    for Main use ("main.adb");
 
    package Compiler is
-      for Switches ("ada") use ("-gnatwa", "-gnata");
+      for Switches ("ada") use ("-gnatwa", "-gnata", "-g");
    end Compiler;
 
 end Spitcoin;

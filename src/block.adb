@@ -23,14 +23,14 @@ package body Block is
    begin
       J := Read
         (Get_Command_Output (Command => "/seoul.a/play/bitcoin/bin/bitcoin-cli",
-                             Arguments => (1 => new String'("getblock"),
+                             Arguments => (1 => new String'("getblockheader"),
                                            2 => new String'(Hash)),
                              Input => "",
                              Status => Status'Access,
                              Err_To_Out => True));
       B.Version := Uint_32 (Integer'(Get (Get (J, "version"))));
       B.Bits := Uint_32_from_Hex (Get (Get (J, "bits")));
-      B.Nonce := Uint_32 (Integer'(Get (Get (J, "nonce"))));
+      B.Nonce := Uint_32 (Long_Integer'(Get (Get (J, "nonce"))));
       B.Timestamp := Uint_32 (Integer'(Get (Get (J, "time"))));
       if Has_Field (J, "previousblockhash") then
          B.Prev_Block := Uint256_From_Hex (Get (Get (J, "previousblockhash")));
