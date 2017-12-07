@@ -20,4 +20,7 @@ package Types with SPARK_Mode is
 
    function Same_Hash (S1, S2 : String) return Boolean;
 
+   function Double_Hash (S : String) return Uint_256;
+   -- hash the data in the string twice using Uint_256;
+
 end Types;
