@@ -27,9 +27,9 @@ package body Block is
 
    procedure Check_Block (B : Block_Type) is
    begin
-      --  ??? transform assertion into "real" code?
-      pragma
-        Assert (B.Header.Merkle_Root = Merkle_Computation (B.Transactions));
+      if B.Header.Merkle_Root /= Merkle_Computation (B.Transactions) then
+         Ada.Text_IO.Put_Line ("found Merkle root mismatch");
+      end if;
    end Check_Block;
 
    ---------------
@@ -48,7 +48,8 @@ package body Block is
                              Status => Status'Access,
                              Err_To_Out => True));
       declare
-         B : Block_Type (Length (Get (J, "tx")));
+         Tx : constant JSON_Array := Get (J, "tx");
+         B : Block_Type (Length (Tx));
       begin
          B.Header.Version := Uint_32 (Integer'(Get (Get (J, "version"))));
          B.Header.Bits := Uint_32_from_Hex (Get (Get (J, "bits")));
@@ -64,7 +65,7 @@ package body Block is
            Uint256_from_Hex (Get (Get (J, "merkleroot")));
          for I in 1 .. B.Num_Transactions loop
             B.Transactions (I) :=
-              Uint256_from_Hex (Get (Get (Get (J, "tx"), I)));
+              Uint256_from_Hex (Get (Get (Tx, I)));
          end loop;
          return B;
       end;
