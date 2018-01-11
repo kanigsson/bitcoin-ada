@@ -41,7 +41,7 @@ package body Block is
       J : Json_Value;
    begin
       J := Read
-        (Get_Command_Output (Command => "/seoul.a/play/bitcoin/bin/bitcoin-cli",
+        (Get_Command_Output (Command => "bitcoin-cli",
                              Arguments => (1 => new String'("getblock"),
                                            2 => new String'(Hash)),
                              Input => "",
