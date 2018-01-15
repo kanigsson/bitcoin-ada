@@ -1,0 +1,145 @@
+Bitcoin is getting a lot of press recently, but let's be honest, that's
+mostly because a single bitcoin was worth almost 20000 USD back in
+December 2017. However, bitcoin and the underlying blockchain are
+beautiful technologies, that are worth a closer look. Of course with our
+Ada hat on!
+
+At it's heart, the blockchain is just a list of transactions, and
+simplified a bit, a transaction is just a triple (sender, receiver,
+amount) - who sent to whom, and how much!
+
+<Picture here>
+
+Now for various reasons, the list of transactions is not a flat list;
+instead, transactions are grouped into *blocks*, and the blockchain is a
+list of *blocks*.
+
+<Picture here>
+
+Naively, this could be implemented using a linked list. But the
+particularity of the blockchain is that it's a *distributed* data
+structure; it is maintained by a network of computers. Every bitcoin
+*full node* has a full copy of the blockchain, but what happens if
+members of the network don't agree on the contents of some transaction
+or block? A simple memory corruption or malicious intent could result in
+a client having incorrect data.  This is why the blockchain has various
+checks built-in that guarantee that corruption or manipulation can be
+detected.
+
+The first idea can be explained as follows. Imagine that our linked list
+of blocks is stored in an array, where the "prev" pointer (the
+blockchain is growing by adding new blocks to the end, each new block
+pointing to the last previous block, so it makes more sense to use a
+"prev" pointer instead of a "next" pointer) is the array index of the
+previous block:
+
+<picture here>
+
+This is a common way to implement a linked list, when using dynamic
+allocation is not desired. Of course we have gained nothing just yet,
+the content can still be easily modified. But now let's replace the
+array by a map from hash values to block objects, with the additional
+property that each block is entered into the map at its own hash value.
+In other words, for eack block in the map, we have
+
+map (hash(block)) = block
+
+??? TODO hash values?
+
+Finally, the "prev" pointers are replaced by the hash values of the
+block they point to
+
+< picture here>
+
+Now what have we gained? The structure can't easily be modified anymore.
+If one modifies any of the blocks, its hash value changes, and it has to
+be stored in a different place in the map. The "prev" pointer of the
+block pointing to the one that changed needs to be adapted as well,
+which makes the hash of that block change, too, and so on. In the end,
+the whole data structure needs to be completely rewritten even for small
+changes (following prev pointers in reverse order starting from the
+change). In fact that never happens, so one ends up with an immutable
+chain of blocks.
+
+To render the above explanations more explicit, let's see some Ada code.
+A bitcoin block is composed of the actual block contents (the list of
+transactions of this block) and a block header, which looks like this:
+
+< ada definition for block header>
+
+https://bitcoin.org/en/developer-reference#block-headers
+A detailed discussion can be found at <link above>, for our discussion
+we only need to understand two fields:
+
+* previous block header hash (this is the "prev" pointer above)
+* the merkle root hash
+
+The second one is a hash that summarizes the contents of the block, and
+guarantees that when the contents change, the block header changes as
+well.
+
+Now the hash of a block is simply the hash of its block header. This can
+be expressed in Ada as follows:
+
+<block_hash code here>
+
+this is enough code to check the integrity of the outermost layer of the
+blockchain.
+
+??? TODO motivation for "checking" blockchain integrity
+
+We can now simply iterate over all blocks and check that
+
+hash(block) = block_hash (as e.g. stored in "previous_block_hash" field
+of another block:
+
+<code for the main loop>
+
+Note that the blockchain is much too big to be held in memory (120 GB and
+counting) on an average machine, so what I did was to download the
+blockchain on my disk using the bitcoin core client, and then
+...
+
+??? TODO fix above explanation
+??? TODO add code to query blockexplorer.com
+
+So we were able to verify the proper chaining of the blockchain, but
+what about the contents? The objective is now to come up with the
+"Merkle root hash" above, which is supposed to "summarize" the block
+contents, that is, it should change for any slight change of the input.
+
+First, each transaction is again identified by its hash, similar to how
+it works for blocks. So now we need to compute a single hash value from
+the list of hashes for the transactions of the block.
+
+Bitcoin uses a hash function which combines *two* hashes into a single
+hash:
+
+<code for the SHA256_Pair function>
+
+Now we *could* just iterate over the list of transaction hashes, using
+this combining function to come up with a single value. But it turns out
+bitcoin does it a bit differently: hashes are combined using a scheme
+that's called a Merkle tree:
+
+<picture here>
+
+One can imagine the transactions be stored at the leaves of a binary
+tree, where each inner node carries a hash which is the combination of
+the two child hashes. The root node carries the "Merkle root hash",
+which in this way summarizes all transactions. However, this image of a
+tree is just that - an image to show the order of hash computations that
+need to be done to compute the Merkle root hash. There is no actual tree
+stored in memory.
+
+There is one peculiarity in the way Bitcoin computes the Merkle hash:
+when a row has an odd number of elements, the last element is combined
+with itself to compute the parent hash.
+
+All this is enough to come up with this code for the Merkle hash:
+
+< code for Merkle hash computation here>
+
+We can now integrate an additional check to our checking code:
+
+<modified code for checking the merkle computation>
