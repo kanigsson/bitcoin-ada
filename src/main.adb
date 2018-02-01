@@ -7,6 +7,7 @@ procedure Main is
    Cur : String :=
      "00000000000000000044e859a307b60d66ae586528fcc6d4df8a7c3eff132456";
    S : String (1 ..64);
+   Count : Integer := 0;
 begin
    loop
       declare
@@ -15,6 +16,8 @@ begin
          S := Uint_256_Hex (Block_Hash (B));
          Put_Line ("checking block hash = " & S);
          Check_Block (B);
+         exit when Count > 10;
+         Count := Count + 1;
          --  Check_Block checks the block itself, but not that it has the
          --  expected hash, checking that here
          pragma Assert (Same_Hash (S,Cur));

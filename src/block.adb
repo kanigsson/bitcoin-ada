@@ -1,6 +1,9 @@
+with Ada.Characters.Handling;
+with Ada.Directories;
 with Ada.Text_IO; use Ada.Text_IO;
-with GNAT.Expect; use GNAT.Expect;
 with GNATCOLL.JSON; use GNATCOLL.JSON;
+with Util;          use Util;
+
 
 package body Block is
 
@@ -37,18 +40,13 @@ package body Block is
    ---------------
 
    function Get_Block (Hash : String) return Block_Type is
-      Status : aliased Integer;
-      J : Json_Value;
+      J : Json_Value renames
+        Read_File_Into_Json (Ada.Directories.Compose ("data",
+                             Ada.Characters.Handling.To_Lower (Hash) &
+                               ".json"));
    begin
-      J := Read
-        (Get_Command_Output (Command => "bitcoin-cli",
-                             Arguments => (1 => new String'("getblock"),
-                                           2 => new String'(Hash)),
-                             Input => "",
-                             Status => Status'Access,
-                             Err_To_Out => True));
       declare
-         Tx : constant JSON_Array := Get (J, "tx");
+         Tx : JSON_Array renames Get (J, "tx");
          B : Block_Type (Length (Tx));
       begin
          B.Header.Version := Uint_32 (Integer'(Get (Get (J, "version"))));
