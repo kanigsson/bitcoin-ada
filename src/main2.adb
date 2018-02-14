@@ -23,6 +23,8 @@ procedure Main2 is
       --   - adding 1 bit at the end of the message
       --   - encoding length of the original message in the last 8 byte of the
       --     message, in little endian.
+      --  source:
+      --  https://crypto.stackexchange.com/questions/32400/how-does-ripemd160-pad-the-message
 
       --  copy the SHA256 hash at the beginning of the buffer
       D_Prime (1 .. 32) := D;

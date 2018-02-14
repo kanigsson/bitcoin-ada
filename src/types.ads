@@ -4,7 +4,9 @@ package Types with SPARK_Mode is
 
    type Uint_8 is new Unsigned_8;
    type Uint_32 is new Unsigned_32;
-   type Uint_256 is array (1 .. 32) of Uint_8;
+   type Large_Number is array (Integer range <>) of Uint_8;
+   subtype Uint_256 is Large_Number (1 .. 32);
+   subtype Uint_160 is Large_Number (1 .. 20);
 
    Uint_256_0 : constant Uint_256 := (others => 0);
 
@@ -17,6 +19,9 @@ package Types with SPARK_Mode is
 
    function Uint_256_Hex (U : Uint_256) return String;
    function Uint256_from_Hex (S : String) return Uint_256;
+
+   function Large_Number_From_Hex (S : String) return Large_Number;
+   function Large_Number_Hex (U : Large_Number) return String;
 
    function Same_Hash (S1, S2 : String) return Boolean;
 

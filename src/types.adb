@@ -82,29 +82,46 @@ package body Types with SPARK_Mode is
       return String'(1 .. Lead_Zeros => '0') & Tmp (Lead_Zeros + 4 .. 11);
    end Uint_32_Hex;
 
+
+   function Large_Number_From_Hex (S : String) return Large_Number is
+      B : Large_Number (1 .. S'Length / 2);
+   begin
+      for I in B'Range loop
+         B (I) := Uint_8_from_Hex (S (S'Last - 2 * (I -1) - 1 ..
+                                      S'Last - 2 * (I - 1)));
+      end loop;
+      return B;
+   end Large_Number_From_Hex;
+
    ----------------------
    -- Uint256_from_Hex --
    ----------------------
 
    function Uint256_from_Hex (S : String) return Uint_256 is
-      B : Uint_256;
    begin
-      for I in B'Range loop
-         B (I) := Uint_8_from_Hex (S (64 - 2 * (I -1) - 1 .. 64 - 2 * (I - 1)));
-      end loop;
-      return B;
+      return Large_Number_From_Hex (S);
    end Uint256_from_Hex;
+
+   ----------------------
+   -- Large_Number_Hex --
+   ----------------------
+
+   function Large_Number_Hex (U : Large_Number) return String is
+      Result : String (1 ..U'Length * 2);
+   begin
+      for I in U'Range loop
+         Uint_8_Hex (Result (U'Length * 2 - 2 * (I - 1) - 1 ..
+                             U'Length * 2 - 2 * (I - 1)), U (I));
+      end loop;
+      return Result;
+   end Large_Number_Hex;
 
    ------------------
    -- Uint_256_Hex --
    ------------------
 
    function Uint_256_Hex (U : Uint_256) return String is
-      Result : String (1 ..64);
    begin
-      for I in U'Range loop
-         Uint_8_Hex (Result (64 - 2 * (I - 1) - 1 .. 64 - 2 * (I - 1)), U (I));
-      end loop;
-      return Result;
+      return Large_Number_Hex (U);
    end Uint_256_Hex;
 end Types;
