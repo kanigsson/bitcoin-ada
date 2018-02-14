@@ -20,7 +20,9 @@ begin
          Count := Count + 1;
          --  Check_Block checks the block itself, but not that it has the
          --  expected hash, checking that here
-         pragma Assert (Same_Hash (S,Cur));
+         if not (Same_Hash (S,Cur)) then
+            Ada.Text_IO.Put_Line ("found block hash mismatch");
+         end if;
          exit when B.Header.Prev_Block = Uint_256_0;
          Cur := Uint_256_Hex (B.Header.Prev_Block);
       end;
