@@ -9,7 +9,7 @@ project Bitcoin is
       for Switches ("ada") use ("-gnatwa", "-gnata", "-g");
    end Compiler;
 
-   for Main use ("main2.adb", "main.adb");
+   for Main use ("main2.adb", "main.adb", "connect.adb");
 
 end Bitcoin;
 

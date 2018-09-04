@@ -3,7 +3,10 @@ with Interfaces;  use Interfaces;
 package Types with SPARK_Mode is
 
    type Uint_8 is new Unsigned_8;
+   type Uint_16 is new Unsigned_16;
    type Uint_32 is new Unsigned_32;
+   type Uint_64 is new Unsigned_64;
+
    type Large_Number is array (Integer range <>) of Uint_8;
    subtype Uint_256 is Large_Number (1 .. 32);
    subtype Uint_160 is Large_Number (1 .. 20);
