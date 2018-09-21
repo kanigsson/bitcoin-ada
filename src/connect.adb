@@ -4,13 +4,14 @@ with Ada.Text_IO;
 with Ada.Calendar;
 with Ada.Calendar.Conversions;
 with Ada.Streams;
-with System;
 
 procedure Connect is
    Address  : Sock_Addr_Type;
    --Server   : Socket_Type;
    Socket   : Socket_Type;
    Channel  : Stream_Access;
+
+   type NUint_64 is new Uint_64;
 
    type Payload is array (Uint_32 range <>) of Uint_8;
 
@@ -79,9 +80,11 @@ procedure Connect is
       Port : Port_Type;
    end record;
 
-   function Mk_Addr return Net_Addr is
+   function Mk_Addr  (Addr : Sock_Addr_Type) return Net_Addr is
    begin
-      return (Services => 1, Ipv6 => (others => 0), Port => 18333);
+      return (Services => 1,
+              Ipv6     => Convert_Ipaddr (Addr.Addr),
+              Port     => Port_Type (Addr.Port));
    end Mk_Addr;
 
    function Command_To_String (C : Command) return Network_String is
@@ -126,18 +129,31 @@ procedure Connect is
       Start_Height : Int_32;
    end record;
 
-   Ver : Version_Data :=
-      (Version => 60002,
-       Services => 1,
-       Timestamp => Int_64 (Ada.Calendar.Conversions.To_Unix_Time (Ada.Calendar.Clock)),
-       Addr_Recv => Mk_Addr,
-       Addr_From => Mk_Addr,
-       Nonce  =>  1,
-       User_Agent => 0,
-       Start_Height => 52144);
+   function Build_Version_Payload
+     (From, To : Sock_Addr_Type) return Payload;
 
-   P : Payload (1 .. Ver'Size / 8);
-   for P'Address use Ver'Address;
+   ---------------------------
+   -- Build_Version_Payload --
+   ---------------------------
+
+   function Build_Version_Payload
+     (From, To : Sock_Addr_Type) return Payload
+   is
+      Ver : Version_Data :=
+        (Version => 60002,
+         Services => 1,
+         Timestamp =>
+           Int_64 (Ada.Calendar.Conversions.To_Unix_Time (Ada.Calendar.Clock)),
+         Addr_Recv => Mk_Addr (To),
+         Addr_From => Mk_Addr (From),
+         Nonce  =>  1,
+         User_Agent => 0,
+         Start_Height => 52144);
+      P : Payload (1 .. Ver'Size / 8);
+      for P'Address use Ver'Address;
+   begin
+      return P;
+   end Build_Version_Payload;
 
 begin
    Address.Addr := Addresses (Get_Host_By_Name (Host_Name), 1);
@@ -149,7 +165,10 @@ begin
    Channel := Stream (Socket);
 
    Ada.Text_IO.Put_Line ("sending version msg ...");
-   Send_Msg (Version, P);
+   Send_Msg (Version,
+             Build_Version_Payload
+               (Get_Socket_Name (Socket),
+                Address));
    while True loop
       Ada.Text_IO.Put_Line ("waiting for msg ...");
       Rec_Msg;
