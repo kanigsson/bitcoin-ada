@@ -11,9 +11,9 @@ procedure Connect is
    --Server   : Socket_Type;
    Socket   : Socket_Type;
    Channel  : Stream_Access;
-   
+
    type Payload is array (Uint_32 range <>) of Uint_8;
-   
+
    type Payload_Rec (Len : Uint_32) is record
       Checksum : Uint_32;
       Data : Payload (1 .. Len);
@@ -29,12 +29,33 @@ procedure Connect is
       Result.Checksum := Uint_32_from_Hex (Large_Number_Hex (Hash) (1 .. 8));
       return Result;
    end Mk_Payload;
-   
+
    type Command is (Version);
-   
+
    Host_Name : constant String := "testnet-seed.bluematt.me";
-   
+
    subtype Network_String is String (1 .. 12);
+
+   subtype Ipaddr is Inet_Addr_Bytes (1 .. 16);
+
+   function Convert_Ipaddr (Addr : Inet_Addr_Type) return Ipaddr;
+
+   --------------------
+   -- Convert_Ipaddr --
+   --------------------
+
+   function Convert_Ipaddr (Addr : Inet_Addr_Type) return Ipaddr is
+   begin
+      case Addr.Family is
+         when Family_Inet6 => return Addr.Sin_V6;
+         when Family_Inet =>
+            return Result : Ipaddr do
+               Result (1 .. 10) := (1 .. 10 => 0);
+               Result (11 .. 12) := (255, 255);
+               Result (13 .. 16) := Addr.Sin_V4;
+            end return;
+      end case;
+   end Convert_Ipaddr;
 
    type Port_Type is new Uint_16;
    procedure Write_Port
@@ -52,20 +73,17 @@ procedure Connect is
       Uint_16'Write (Stream, Fst or Lst);
    end Write_Port;
 
-   type Adress_Type is new String;
-   for Adress_Type'Scalar_Storage_Order use System.High_Order_First;
-   
    type Net_Addr is record
       Services : Uint_64;
-      IPv6 : Adress_Type (1 .. 16);
+      IPv6 : Ipaddr;
       Port : Port_Type;
    end record;
-   
+
    function Mk_Addr return Net_Addr is
    begin
-      return (Services => 1, Ipv6 => "0000000000000000", Port => 18333);
+      return (Services => 1, Ipv6 => (others => 0), Port => 18333);
    end Mk_Addr;
-   
+
    function Command_To_String (C : Command) return Network_String is
       Result : Network_String := (others => ASCII.Nul);
       Str : constant String := (case C is when Version => "version");
@@ -80,7 +98,7 @@ procedure Connect is
       String'Write (Channel, Command_To_String (C));
       Payload_Rec'Output (Channel, Mk_Payload (P));
    end Send_Msg;
-   
+
    procedure Rec_Msg is
       Magic : Uint_32;
       Str : Network_String;
@@ -117,19 +135,23 @@ procedure Connect is
        Nonce  =>  1,
        User_Agent => 0,
        Start_Height => 52144);
-   
+
    P : Payload (1 .. Ver'Size / 8);
    for P'Address use Ver'Address;
-       
+
 begin
    Address.Addr := Addresses (Get_Host_By_Name (Host_Name), 1);
    Address.Port := 18333;
+   Ada.Text_IO.Put_Line ("creating socket...");
    Create_Socket (Socket);
+   Ada.Text_IO.Put_Line ("connecting to "  & Image (Address.Addr) & " ...");
    Connect_Socket (Socket, Address);
    Channel := Stream (Socket);
-   
+
+   Ada.Text_IO.Put_Line ("sending version msg ...");
    Send_Msg (Version, P);
    while True loop
+      Ada.Text_IO.Put_Line ("waiting for msg ...");
       Rec_Msg;
    end loop;
 
