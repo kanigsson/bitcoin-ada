@@ -7,6 +7,11 @@ package Types with SPARK_Mode is
    type Uint_32 is new Unsigned_32;
    type Uint_64 is new Unsigned_64;
 
+   type Int_8 is new Integer_8;
+   type Int_16 is new Integer_16;
+   type Int_32 is new Integer_32;
+   type Int_64 is new Integer_64;
+
    type Large_Number is array (Integer range <>) of Uint_8;
    subtype Uint_256 is Large_Number (1 .. 32);
    subtype Uint_160 is Large_Number (1 .. 20);

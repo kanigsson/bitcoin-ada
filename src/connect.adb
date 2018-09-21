@@ -3,6 +3,8 @@ with Types; use Types;
 with Ada.Text_IO;
 with Ada.Calendar;
 with Ada.Calendar.Conversions;
+with Ada.Streams;
+with System;
 
 procedure Connect is
    Address  : Sock_Addr_Type;
@@ -34,11 +36,29 @@ procedure Connect is
    
    subtype Network_String is String (1 .. 12);
 
+   type Port_Type is new Uint_16;
+   procedure Write_Port
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : in  Port_Type);
+   for Port_Type'Write use Write_Port;
+
+   procedure Write_Port
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : in  Port_Type)
+   is
+      Fst : constant Uint_16 := Uint_16 (Shift_Left (Item, 8));
+      Lst : constant Uint_16 := Uint_16 (Shift_Right (Item, 8));
+   begin
+      Uint_16'Write (Stream, Fst or Lst);
+   end Write_Port;
+
+   type Adress_Type is new String;
+   for Adress_Type'Scalar_Storage_Order use System.High_Order_First;
    
    type Net_Addr is record
       Services : Uint_64;
-      IPv6 : String (1 .. 16);
-      Port : Uint_16;
+      IPv6 : Adress_Type (1 .. 16);
+      Port : Port_Type;
    end record;
    
    function Mk_Addr return Net_Addr is
@@ -78,20 +98,20 @@ procedure Connect is
    end Rec_Msg;
 
    type Version_Data is record
-      Version : Uint_32;
+      Version : Int_32;
       Services : Uint_64;
-      Timestamp : Uint_64;
+      Timestamp : Int_64;
       Addr_Recv : Net_Addr;
       addr_from : Net_Addr;
       Nonce : Uint_64;
       User_Agent: Uint_8; --  ??? We will hardcode this to 0 for now
-      Start_Height : Uint_32;
+      Start_Height : Int_32;
    end record;
 
    Ver : Version_Data :=
       (Version => 60002,
        Services => 1,
-       Timestamp => Uint_64 (Ada.Calendar.Conversions.To_Unix_Time (Ada.Calendar.Clock)),
+       Timestamp => Int_64 (Ada.Calendar.Conversions.To_Unix_Time (Ada.Calendar.Clock)),
        Addr_Recv => Mk_Addr,
        Addr_From => Mk_Addr,
        Nonce  =>  1,
