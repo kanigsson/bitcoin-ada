@@ -12,7 +12,42 @@ procedure Connect is
    Channel  : Stream_Access;
 
    type NUint_64 is new Uint_64;
+     
+   procedure Write_NUint_64
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : in  NUint_64);
+   for NUint_64'Write use Write_NUint_64;
 
+   procedure Write_NUint_64
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : in  NUint_64) is
+   
+      Ar : array (1 .. 8) of Uint_8;
+      for Ar'Address use Item'Address;
+   begin
+      for I in reverse Ar'range loop
+         Uint_8'Write (Stream, Ar (I));
+      end loop;
+   end Write_NUint_64;
+
+   type NInt_64 is new Int_64;
+   
+   procedure Write_NInt_64
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : in  NInt_64);
+   for NInt_64'Write use Write_NInt_64;
+
+   procedure Write_NInt_64
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : in  NInt_64) is
+   
+      Ar : array (1 .. 2) of Uint_32;
+      for Ar'Address use Item'Address;
+   begin
+      Uint_32'Write (Stream, Ar (1));
+      Uint_32'Write (Stream, Ar (2));
+   end Write_NInt_64;
+   
    type Payload is array (Uint_32 range <>) of Uint_8;
 
    type Payload_Rec (Len : Uint_32) is record
@@ -75,16 +110,19 @@ procedure Connect is
    end Write_Port;
 
    type Net_Addr is record
-      Services : Uint_64;
+      Services : NUint_64;
       IPv6 : Ipaddr;
       Port : Port_Type;
    end record;
 
    function Mk_Addr  (Addr : Sock_Addr_Type) return Net_Addr is
+      T : Net_Addr;
    begin
-      return (Services => 1,
-              Ipv6     => Convert_Ipaddr (Addr.Addr),
-              Port     => Port_Type (Addr.Port));
+      T :=
+        (Services => 1,
+         Ipv6     => Convert_Ipaddr (Addr.Addr),
+         Port     => Port_Type (Addr.Port));
+      return T;
    end Mk_Addr;
 
    function Command_To_String (C : Command) return Network_String is
@@ -120,11 +158,11 @@ procedure Connect is
 
    type Version_Data is record
       Version : Int_32;
-      Services : Uint_64;
-      Timestamp : Int_64;
+      Services : NUint_64;
+      Timestamp : NInt_64;
       Addr_Recv : Net_Addr;
       addr_from : Net_Addr;
-      Nonce : Uint_64;
+      Nonce : NUint_64;
       User_Agent: Uint_8; --  ??? We will hardcode this to 0 for now
       Start_Height : Int_32;
    end record;
@@ -143,7 +181,7 @@ procedure Connect is
         (Version => 60002,
          Services => 1,
          Timestamp =>
-           Int_64 (Ada.Calendar.Conversions.To_Unix_Time (Ada.Calendar.Clock)),
+           Nint_64 (Ada.Calendar.Conversions.To_Unix_Time (Ada.Calendar.Clock)),
          Addr_Recv => Mk_Addr (To),
          Addr_From => Mk_Addr (From),
          Nonce  =>  1,
